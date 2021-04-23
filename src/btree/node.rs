@@ -48,20 +48,3 @@ impl<B: ByteSlice> Body<B> {
         }
     }
 }
-
-impl<B> Body<B> {
-    pub fn try_into_leaf(self) -> Result<Leaf<B>, Self> {
-        match self {
-            Body::Leaf(leaf) => Ok(leaf),
-            _ => Err(self),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn try_into_branch(self) -> Result<Branch<B>, Self> {
-        match self {
-            Body::Branch(branch) => Ok(branch),
-            _ => Err(self),
-        }
-    }
-}

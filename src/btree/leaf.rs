@@ -45,6 +45,7 @@ impl<B: ByteSlice> Leaf<B> {
         })
     }
 
+    #[cfg(test)]
     pub fn search_pair(&self, key: &[u8]) -> Option<Pair> {
         let slot_id = self.search_slot_id(key).ok()?;
         Some(self.pair_at(slot_id))
