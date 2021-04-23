@@ -5,7 +5,7 @@ use relly::disk::{DiskManager, PageId};
 use relly::table::{Table, UniqueIndex};
 use sha1::{Digest, Sha1};
 
-const NUM_ROWS: u32 = 1_000_000;
+const NUM_ROWS: u32 = 10_000_000;
 
 /* CREATE TABLE
    |id    |first_name|last_name|
