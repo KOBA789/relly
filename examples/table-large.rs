@@ -5,11 +5,22 @@ use relly::disk::{DiskManager, PageId};
 use relly::table::{Table, UniqueIndex};
 use sha1::{Digest, Sha1};
 
-const NUM_ROWS: u32 = 10_000_000;
+const NUM_ROWS: u32 = 1_000_000;
 
+/* CREATE TABLE
+   |id    |first_name|last_name|
+   |------|----------|---------|
+   |z     |Alice     |Smith    |
+   |x     |Bob       |Johonson |
+   |y     |Charlie   |Williams |
+   |w     |Dave      |Miller   |
+   |v     |Eve       |Brown    |
+   |...   |          |         |
+   |BE i32|md5(id)   |sha1(id) |
+ */
 fn main() -> Result<()> {
     let disk = DiskManager::open("table.rly")?;
-    let pool = BufferPool::new(1000);
+    let pool = BufferPool::new(1_000_000);
     let mut bufmgr = BufferPoolManager::new(disk, pool);
     let mut table = Table {
         meta_page_id: PageId(0),

@@ -5,6 +5,8 @@ use relly::buffer::{BufferPool, BufferPoolManager};
 use relly::disk::{DiskManager, PageId};
 use relly::tuple;
 
+// SELECT * WHERE last_name = 'Smith'
+// with index
 fn main() -> Result<()> {
     let disk = DiskManager::open("table.rly")?;
     let pool = BufferPool::new(10);

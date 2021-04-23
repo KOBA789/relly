@@ -4,6 +4,15 @@ use relly::buffer::{BufferPool, BufferPoolManager};
 use relly::disk::{DiskManager, PageId};
 use relly::table::{Table, UniqueIndex};
 
+/* CREATE TABLE
+   |id    |first_name|last_name|
+   |------|----------|---------|
+   |z     |Alice     |Smith    |
+   |x     |Bob       |Johonson |
+   |y     |Charlie   |Williams |
+   |w     |Dave      |Miller   |
+   |v     |Eve       |Brown    |
+ */
 fn main() -> Result<()> {
     let disk = DiskManager::open("table.rly")?;
     let pool = BufferPool::new(10);
@@ -26,7 +35,7 @@ fn main() -> Result<()> {
     table.insert(&mut bufmgr, &[b"y", b"Charlie", b"Williams"])?;
     table.insert(&mut bufmgr, &[b"w", b"Dave", b"Miller"])?;
     table.insert(&mut bufmgr, &[b"v", b"Eve", b"Brown"])?;
-    
+
     bufmgr.flush()?;
     Ok(())
 }
