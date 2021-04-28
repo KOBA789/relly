@@ -147,7 +147,9 @@ impl<'a> Executor for ExecIndexScan<'a> {
         if !(self.while_cond)(&skey) {
             return Ok(None);
         }
-        let mut table_iter = self.table_btree.search(bufmgr, SearchMode::Key(pkey_bytes))?;
+        let mut table_iter = self
+            .table_btree
+            .search(bufmgr, SearchMode::Key(pkey_bytes))?;
         let (pkey_bytes, tuple_bytes) = table_iter.next(bufmgr)?.unwrap();
         let mut tuple = vec![];
         tuple::decode(&pkey_bytes, &mut tuple);

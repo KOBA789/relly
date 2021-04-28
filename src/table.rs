@@ -73,10 +73,18 @@ impl UniqueIndex {
         Ok(())
     }
 
-    pub fn insert(&self, bufmgr: &mut BufferPoolManager, pkey: &[u8], record: &[impl AsRef<[u8]>]) -> Result<()> {
+    pub fn insert(
+        &self,
+        bufmgr: &mut BufferPoolManager,
+        pkey: &[u8],
+        record: &[impl AsRef<[u8]>],
+    ) -> Result<()> {
         let btree = BTree::new(self.meta_page_id);
         let mut skey = vec![];
-        tuple::encode(self.skey.iter().map(|&index| record[index].as_ref()), &mut skey);
+        tuple::encode(
+            self.skey.iter().map(|&index| record[index].as_ref()),
+            &mut skey,
+        );
         btree.insert(bufmgr, &skey, pkey)?;
         Ok(())
     }

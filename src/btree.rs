@@ -79,9 +79,7 @@ impl BTree {
     }
 
     pub fn new(meta_page_id: PageId) -> Self {
-        Self {
-            meta_page_id,
-        }
+        Self { meta_page_id }
     }
 
     fn fetch_root_page(&self, bufmgr: &mut BufferPoolManager) -> Result<Rc<Buffer>, Error> {
@@ -192,8 +190,7 @@ impl BTree {
                         let mut new_branch_node =
                             node::Node::new(new_branch_buffer.page.borrow_mut() as RefMut<[_]>);
                         new_branch_node.initialize_as_branch();
-                        let mut new_branch =
-                            branch::Branch::new(new_branch_node.body);
+                        let mut new_branch = branch::Branch::new(new_branch_node.body);
                         let overflow_key = branch.split_insert(
                             &mut new_branch,
                             &overflow_key_from_child,
@@ -220,9 +217,7 @@ impl BTree {
         let mut meta = meta::Meta::new(meta_buffer.page.borrow_mut() as RefMut<[_]>);
         let root_page_id = meta.header.root_page_id;
         let root_buffer = bufmgr.fetch_page(root_page_id)?;
-        if let Some((key, child_page_id)) =
-            self.insert_internal(bufmgr, root_buffer, key, value)?
-        {
+        if let Some((key, child_page_id)) = self.insert_internal(bufmgr, root_buffer, key, value)? {
             let new_root_buffer = bufmgr.create_page()?;
             let mut node = node::Node::new(new_root_buffer.page.borrow_mut() as RefMut<[_]>);
             node.initialize_as_branch();
@@ -253,7 +248,10 @@ impl Iter {
     }
 
     #[allow(clippy::type_complexity)]
-    pub fn next(&mut self, bufmgr: &mut BufferPoolManager) -> Result<Option<(Vec<u8>, Vec<u8>)>, Error> {
+    pub fn next(
+        &mut self,
+        bufmgr: &mut BufferPoolManager,
+    ) -> Result<Option<(Vec<u8>, Vec<u8>)>, Error> {
         let value = self.get();
         self.slot_id += 1;
         let next_page_id = {
@@ -291,8 +289,12 @@ mod tests {
         btree
             .insert(&mut bufmgr, &3u64.to_be_bytes(), b"hello")
             .unwrap();
-        btree.insert(&mut bufmgr, &8u64.to_be_bytes(), b"!").unwrap();
-        btree.insert(&mut bufmgr, &4u64.to_be_bytes(), b",").unwrap();
+        btree
+            .insert(&mut bufmgr, &8u64.to_be_bytes(), b"!")
+            .unwrap();
+        btree
+            .insert(&mut bufmgr, &4u64.to_be_bytes(), b",")
+            .unwrap();
 
         let (_, value) = btree
             .search(&mut bufmgr, SearchMode::Key(3u64.to_be_bytes().to_vec()))

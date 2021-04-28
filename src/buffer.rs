@@ -1,4 +1,4 @@
-use std::cell::{RefCell, Cell};
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::io;
 use std::ops::{Index, IndexMut};
@@ -132,7 +132,8 @@ impl BufferPoolManager {
         {
             let buffer = Rc::get_mut(&mut frame.buffer).unwrap();
             if buffer.is_dirty.get() {
-                self.disk.write_page_data(evict_page_id, buffer.page.get_mut())?;
+                self.disk
+                    .write_page_data(evict_page_id, buffer.page.get_mut())?;
             }
             buffer.page_id = page_id;
             buffer.is_dirty.set(false);
@@ -152,7 +153,8 @@ impl BufferPoolManager {
         let page_id = {
             let buffer = Rc::get_mut(&mut frame.buffer).unwrap();
             if buffer.is_dirty.get() {
-                self.disk.write_page_data(evict_page_id, buffer.page.get_mut())?;
+                self.disk
+                    .write_page_data(evict_page_id, buffer.page.get_mut())?;
             }
             self.page_table.remove(&evict_page_id);
             let page_id = self.disk.allocate_page();

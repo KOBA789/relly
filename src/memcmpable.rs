@@ -43,13 +43,13 @@ mod tests {
     fn test() {
         let org1 = b"helloworld!memcmpable";
         let org2 = b"foobarbazhogehuga";
-        
+
         let mut enc = vec![];
         encode(org1, &mut enc);
         encode(org2, &mut enc);
-        
+
         let mut rest = &enc[..];
-        
+
         let mut dec1 = vec![];
         decode(&mut rest, &mut dec1);
         assert_eq!(org1, dec1.as_slice());

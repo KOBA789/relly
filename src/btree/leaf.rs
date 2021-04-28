@@ -2,10 +2,10 @@ use std::mem::size_of;
 
 use zerocopy::{AsBytes, ByteSlice, ByteSliceMut, FromBytes, LayoutVerified};
 
+use super::Pair;
 use crate::bsearch::binary_search_by;
 use crate::disk::PageId;
 use crate::slotted::{self, Slotted};
-use super::Pair;
 
 #[derive(Debug, FromBytes, AsBytes)]
 #[repr(C)]
@@ -98,7 +98,9 @@ impl<B: ByteSliceMut> Leaf<B> {
         new_leaf.initialize();
         loop {
             if new_leaf.is_half_full() {
-                let index = self.search_slot_id(new_key).expect_err("key must be unique");
+                let index = self
+                    .search_slot_id(new_key)
+                    .expect_err("key must be unique");
                 self.insert(index, new_key, new_value)
                     .expect("old leaf must have space");
                 break;

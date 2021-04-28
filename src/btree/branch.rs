@@ -2,10 +2,10 @@ use std::mem::size_of;
 
 use zerocopy::{AsBytes, ByteSlice, ByteSliceMut, FromBytes, LayoutVerified};
 
+use super::Pair;
 use crate::bsearch::binary_search_by;
 use crate::disk::PageId;
 use crate::slotted::{self, Slotted};
-use super::Pair;
 
 #[derive(Debug, FromBytes, AsBytes)]
 #[repr(C)]
@@ -23,10 +23,7 @@ impl<B: ByteSlice> Branch<B> {
         let (header, body) =
             LayoutVerified::new_from_prefix(bytes).expect("branch header must be aligned");
         let body = Slotted::new(body);
-        Self {
-            header,
-            body,
-        }
+        Self { header, body }
     }
 
     pub fn num_pairs(&self) -> usize {
@@ -85,7 +82,10 @@ impl<B: ByteSliceMut> Branch<B> {
 
     #[must_use = "insertion may fail"]
     pub fn insert(&mut self, slot_id: usize, key: &[u8], page_id: PageId) -> Option<()> {
-        let pair = Pair { key, value: page_id.as_bytes() };
+        let pair = Pair {
+            key,
+            value: page_id.as_bytes(),
+        };
         let pair_bytes = pair.to_bytes();
         assert!(pair_bytes.len() <= self.max_pair_size());
         self.body.insert(slot_id, pair_bytes.len())?;
@@ -106,7 +106,9 @@ impl<B: ByteSliceMut> Branch<B> {
         new_branch.body.initialize();
         loop {
             if new_branch.is_half_full() {
-                let index = self.search_slot_id(new_key).expect_err("key must be unique");
+                let index = self
+                    .search_slot_id(new_key)
+                    .expect_err("key must be unique");
                 self.insert(index, new_key, new_page_id)
                     .expect("old branch must have space");
                 break;
@@ -146,12 +148,8 @@ mod tests {
         let mut data = vec![0u8; 100];
         let mut branch = Branch::new(data.as_mut_slice());
         branch.initialize(&5u64.to_be_bytes(), PageId(1), PageId(2));
-        branch
-            .insert(1, &8u64.to_be_bytes(), PageId(3))
-            .unwrap();
-        branch
-            .insert(2, &11u64.to_be_bytes(), PageId(4))
-            .unwrap();
+        branch.insert(1, &8u64.to_be_bytes(), PageId(3)).unwrap();
+        branch.insert(2, &11u64.to_be_bytes(), PageId(4)).unwrap();
         assert_eq!(PageId(1), branch.search_child(&1u64.to_be_bytes()));
         assert_eq!(PageId(3), branch.search_child(&5u64.to_be_bytes()));
         assert_eq!(PageId(3), branch.search_child(&6u64.to_be_bytes()));
@@ -166,12 +164,8 @@ mod tests {
         let mut data = vec![0u8; 100];
         let mut branch = Branch::new(data.as_mut_slice());
         branch.initialize(&5u64.to_be_bytes(), PageId(1), PageId(2));
-        branch
-            .insert(1, &8u64.to_be_bytes(), PageId(3))
-            .unwrap();
-        branch
-            .insert(2, &11u64.to_be_bytes(), PageId(4))
-            .unwrap();
+        branch.insert(1, &8u64.to_be_bytes(), PageId(3)).unwrap();
+        branch.insert(2, &11u64.to_be_bytes(), PageId(4)).unwrap();
 
         let mut data2 = vec![0u8; 100];
         let mut branch2 = Branch::new(data2.as_mut_slice());
