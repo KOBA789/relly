@@ -1,4 +1,5 @@
-use std::cmp;
+use core::cmp;
+use alloc::vec::Vec;
 
 const ESCAPE_LENGTH: usize = 9;
 

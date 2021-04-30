@@ -1,4 +1,5 @@
-use std::mem::size_of;
+use core::mem::size_of;
+use alloc::vec::Vec;
 
 use zerocopy::{AsBytes, ByteSlice, ByteSliceMut, FromBytes, LayoutVerified};
 

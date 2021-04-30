@@ -1,5 +1,5 @@
-use std::mem::size_of;
-use std::ops::{Index, IndexMut, Range};
+use core::mem::size_of;
+use core::ops::{Index, IndexMut, Range};
 
 use zerocopy::{AsBytes, ByteSlice, ByteSliceMut, FromBytes, LayoutVerified};
 

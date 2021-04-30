@@ -1,4 +1,4 @@
-use std::cmp::Ordering::{self, Greater, Less};
+use core::cmp::Ordering::{self, Greater, Less};
 
 /*
  * This is originated in Rust core library:

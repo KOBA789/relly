@@ -1,16 +1,13 @@
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::io;
-use std::ops::{Index, IndexMut};
-use std::rc::Rc;
+use core::cell::{Cell, RefCell};
+use alloc::collections::BTreeMap;
+use core::ops::{Index, IndexMut};
+use alloc::rc::Rc;
+use alloc::vec::Vec;
 
 use crate::disk::{DiskManager, PageId, PAGE_SIZE};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Error {
-    #[error(transparent)]
-    Io(#[from] io::Error),
-    #[error("no free buffer available in buffer pool")]
     NoFreeBuffer,
 }
 
@@ -107,12 +104,12 @@ impl IndexMut<BufferId> for BufferPool {
 pub struct BufferPoolManager {
     disk: DiskManager,
     pool: BufferPool,
-    page_table: HashMap<PageId, BufferId>,
+    page_table: BTreeMap<PageId, BufferId>,
 }
 
 impl BufferPoolManager {
     pub fn new(disk: DiskManager, pool: BufferPool) -> Self {
-        let page_table = HashMap::new();
+        let page_table = BTreeMap::new();
         Self {
             disk,
             pool,
@@ -133,11 +130,11 @@ impl BufferPoolManager {
             let buffer = Rc::get_mut(&mut frame.buffer).unwrap();
             if buffer.is_dirty.get() {
                 self.disk
-                    .write_page_data(evict_page_id, buffer.page.get_mut())?;
+                    .write_page_data(evict_page_id, buffer.page.get_mut());
             }
             buffer.page_id = page_id;
             buffer.is_dirty.set(false);
-            self.disk.read_page_data(page_id, buffer.page.get_mut())?;
+            self.disk.read_page_data(page_id, buffer.page.get_mut());
             frame.usage_count = 1;
         }
         let page = Rc::clone(&frame.buffer);
@@ -154,7 +151,7 @@ impl BufferPoolManager {
             let buffer = Rc::get_mut(&mut frame.buffer).unwrap();
             if buffer.is_dirty.get() {
                 self.disk
-                    .write_page_data(evict_page_id, buffer.page.get_mut())?;
+                    .write_page_data(evict_page_id, buffer.page.get_mut());
             }
             self.page_table.remove(&evict_page_id);
             let page_id = self.disk.allocate_page();
@@ -174,10 +171,9 @@ impl BufferPoolManager {
         for (&page_id, &buffer_id) in self.page_table.iter() {
             let frame = &self.pool[buffer_id];
             let mut page = frame.buffer.page.borrow_mut();
-            self.disk.write_page_data(page_id, page.as_mut())?;
+            self.disk.write_page_data(page_id, page.as_mut());
             frame.buffer.is_dirty.set(false);
         }
-        self.disk.sync()?;
         Ok(())
     }
 }
@@ -185,7 +181,6 @@ impl BufferPoolManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempfile;
 
     #[test]
     fn test() {
@@ -196,7 +191,7 @@ mod tests {
         world.extend_from_slice(b"world");
         world.resize(PAGE_SIZE, 0);
 
-        let disk = DiskManager::new(tempfile().unwrap()).unwrap();
+        let disk = DiskManager::new(vec![0u8; PAGE_SIZE * 1024], 0);
         let pool = BufferPool::new(1);
         let mut bufmgr = BufferPoolManager::new(disk, pool);
         let page1_id = {

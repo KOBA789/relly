@@ -1,10 +1,8 @@
-use std::cell::{Ref, RefMut};
-use std::convert::identity;
-use std::rc::Rc;
+use core::cell::{Ref, RefMut};
+use core::convert::identity;
+use alloc::rc::Rc;
+use alloc::vec::Vec;
 
-use bincode::Options;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use zerocopy::{AsBytes, ByteSlice};
 
 use crate::buffer::{self, Buffer, BufferPoolManager};
@@ -15,7 +13,6 @@ mod leaf;
 mod meta;
 mod node;
 
-#[derive(Serialize, Deserialize)]
 pub struct Pair<'a> {
     pub key: &'a [u8],
     pub value: &'a [u8],
@@ -23,20 +20,54 @@ pub struct Pair<'a> {
 
 impl<'a> Pair<'a> {
     fn to_bytes(&self) -> Vec<u8> {
-        bincode::options().serialize(self).unwrap()
+        let size =
+            2 +
+            self.key.len() +
+            self.value.len();
+        let mut bytes = vec![0u8; size];
+        bytes[0..2].copy_from_slice(
+            &(self.key.len() as u16).to_be_bytes()
+        );
+        let body = &mut bytes[2..];
+        body[0..self.key.len()]
+            .copy_from_slice(self.key);
+        body[self.key.len()..]
+            .copy_from_slice(self.value);
+        bytes
     }
 
     fn from_bytes(bytes: &'a [u8]) -> Self {
-        bincode::options().deserialize(bytes).unwrap()
+        let key_len =
+            u16::from_be_bytes([bytes[0], bytes[1]]) as usize;
+        let body = &bytes[2..];
+        let key = &body[0..key_len];
+        let value = &body[key_len..];
+        Self { key, value }
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum Error {
-    #[error("duplicate key")]
     DuplicateKey,
-    #[error(transparent)]
-    Buffer(#[from] buffer::Error),
+    Buffer(buffer::Error),
+}
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl From<buffer::Error> for Error {
+    fn from(e: buffer::Error) -> Self {
+        Error::Buffer(e)
+    }
+}
+
+impl From<Error> for anyhow::Error {
+    fn from(e: Error) -> Self {
+        anyhow::Error::msg(e)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -272,14 +303,13 @@ impl Iter {
 
 #[cfg(test)]
 mod tests {
-    use tempfile::tempfile;
-
+    use crate::disk::PAGE_SIZE;
     use crate::{buffer::BufferPool, disk::DiskManager};
 
     use super::*;
     #[test]
     fn test() {
-        let disk = DiskManager::new(tempfile().unwrap()).unwrap();
+        let disk = DiskManager::new(vec![0u8; PAGE_SIZE * 1024], 0);
         let pool = BufferPool::new(10);
         let mut bufmgr = BufferPoolManager::new(disk, pool);
         let btree = BTree::create(&mut bufmgr).unwrap();
@@ -312,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_split() {
-        let disk = DiskManager::new(tempfile().unwrap()).unwrap();
+        let disk = DiskManager::new(vec![0u8; PAGE_SIZE * 1024], 0);
         let pool = BufferPool::new(10);
         let mut bufmgr = BufferPoolManager::new(disk, pool);
         let btree = BTree::create(&mut bufmgr).unwrap();
