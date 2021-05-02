@@ -124,7 +124,7 @@ impl BufferPoolManager {
         if let Some(&buffer_id) = self.page_table.get(&page_id) {
             let frame = &mut self.pool[buffer_id];
             frame.usage_count += 1;
-            return Ok(frame.buffer.clone());
+            return Ok(Rc::clone(&frame.buffer));
         }
         let buffer_id = self.pool.evict().ok_or(Error::NoFreeBuffer)?;
         let frame = &mut self.pool[buffer_id];
