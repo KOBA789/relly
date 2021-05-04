@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::Result;
 
 use crate::btree::{self, BTree, SearchMode};
@@ -8,12 +10,12 @@ use crate::tuple;
 pub type Tuple = Vec<Vec<u8>>;
 pub type TupleSlice<'a> = &'a [Vec<u8>];
 
-pub enum TupleSearchMode<'a> {
+pub enum TupleSearchMode {
     Start,
-    Key(&'a [&'a [u8]]),
+    Key(Tuple),
 }
 
-impl<'a> TupleSearchMode<'a> {
+impl TupleSearchMode {
     fn encode(&self) -> SearchMode {
         match self {
             TupleSearchMode::Start => SearchMode::Start,
@@ -36,29 +38,29 @@ pub trait PlanNode {
     fn start(&self, bufmgr: &mut BufferPoolManager) -> Result<BoxExecutor>;
 }
 
-pub struct SeqScan<'a> {
+pub struct SeqScan {
     pub table_meta_page_id: PageId,
-    pub search_mode: TupleSearchMode<'a>,
-    pub while_cond: &'a dyn Fn(TupleSlice) -> bool,
+    pub search_mode: TupleSearchMode,
+    pub while_cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> PlanNode for SeqScan<'a> {
+impl PlanNode for SeqScan {
     fn start(&self, bufmgr: &mut BufferPoolManager) -> Result<BoxExecutor> {
         let btree = BTree::new(self.table_meta_page_id);
         let table_iter = btree.search(bufmgr, self.search_mode.encode())?;
         Ok(Box::new(ExecSeqScan {
             table_iter,
-            while_cond: self.while_cond,
+            while_cond: self.while_cond.clone(),
         }))
     }
 }
 
-pub struct ExecSeqScan<'a> {
+pub struct ExecSeqScan {
     table_iter: btree::Iter,
-    while_cond: &'a dyn Fn(TupleSlice) -> bool,
+    while_cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> Executor for ExecSeqScan<'a> {
+impl Executor for ExecSeqScan {
     fn next(&mut self, bufmgr: &mut BufferPoolManager) -> Result<Option<Tuple>> {
         let (pkey_bytes, tuple_bytes) = match self.table_iter.next(bufmgr)? {
             Some(pair) => pair,
@@ -75,24 +77,24 @@ impl<'a> Executor for ExecSeqScan<'a> {
     }
 }
 
-pub struct Filter<'a> {
-    pub inner_plan: &'a dyn PlanNode,
-    pub cond: &'a dyn Fn(TupleSlice) -> bool,
+pub struct Filter {
+    pub inner_plan: Box<dyn PlanNode>,
+    pub cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> PlanNode for Filter<'a> {
+impl PlanNode for Filter {
     fn start(&self, bufmgr: &mut BufferPoolManager) -> Result<BoxExecutor> {
         let inner_iter = self.inner_plan.start(bufmgr)?;
         Ok(Box::new(ExecFilter {
             inner_iter,
-            cond: self.cond,
+            cond: self.cond.clone(),
         }))
     }
 }
 
 pub struct ExecFilter<'a> {
     inner_iter: BoxExecutor<'a>,
-    cond: &'a dyn Fn(TupleSlice) -> bool,
+    cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
 impl<'a> Executor for ExecFilter<'a> {
@@ -110,14 +112,14 @@ impl<'a> Executor for ExecFilter<'a> {
     }
 }
 
-pub struct IndexScan<'a> {
+pub struct IndexScan {
     pub table_meta_page_id: PageId,
     pub index_meta_page_id: PageId,
-    pub search_mode: TupleSearchMode<'a>,
-    pub while_cond: &'a dyn Fn(TupleSlice) -> bool,
+    pub search_mode: TupleSearchMode,
+    pub while_cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> PlanNode for IndexScan<'a> {
+impl PlanNode for IndexScan {
     fn start(&self, bufmgr: &mut BufferPoolManager) -> Result<BoxExecutor> {
         let table_btree = BTree::new(self.table_meta_page_id);
         let index_btree = BTree::new(self.index_meta_page_id);
@@ -125,18 +127,18 @@ impl<'a> PlanNode for IndexScan<'a> {
         Ok(Box::new(ExecIndexScan {
             table_btree,
             index_iter,
-            while_cond: self.while_cond,
+            while_cond: self.while_cond.clone(),
         }))
     }
 }
 
-pub struct ExecIndexScan<'a> {
+pub struct ExecIndexScan {
     table_btree: BTree,
     index_iter: btree::Iter,
-    while_cond: &'a dyn Fn(TupleSlice) -> bool,
+    while_cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> Executor for ExecIndexScan<'a> {
+impl Executor for ExecIndexScan {
     fn next(&mut self, bufmgr: &mut BufferPoolManager) -> Result<Option<Tuple>> {
         let (skey_bytes, pkey_bytes) = match self.index_iter.next(bufmgr)? {
             Some(pair) => pair,
@@ -158,29 +160,29 @@ impl<'a> Executor for ExecIndexScan<'a> {
     }
 }
 
-pub struct IndexOnlyScan<'a> {
+pub struct IndexOnlyScan {
     pub index_meta_page_id: PageId,
-    pub search_mode: TupleSearchMode<'a>,
-    pub while_cond: &'a dyn Fn(TupleSlice) -> bool,
+    pub search_mode: TupleSearchMode,
+    pub while_cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> PlanNode for IndexOnlyScan<'a> {
+impl PlanNode for IndexOnlyScan {
     fn start(&self, bufmgr: &mut BufferPoolManager) -> Result<BoxExecutor> {
         let btree = BTree::new(self.index_meta_page_id);
         let index_iter = btree.search(bufmgr, self.search_mode.encode())?;
         Ok(Box::new(ExecIndexOnlyScan {
             index_iter,
-            while_cond: self.while_cond,
+            while_cond: self.while_cond.clone(),
         }))
     }
 }
 
-pub struct ExecIndexOnlyScan<'a> {
+pub struct ExecIndexOnlyScan {
     index_iter: btree::Iter,
-    while_cond: &'a dyn Fn(TupleSlice) -> bool,
+    while_cond: Rc<dyn Fn(TupleSlice) -> bool>,
 }
 
-impl<'a> Executor for ExecIndexOnlyScan<'a> {
+impl Executor for ExecIndexOnlyScan {
     fn next(&mut self, bufmgr: &mut BufferPoolManager) -> Result<Option<Tuple>> {
         let (skey_bytes, pkey_bytes) = match self.index_iter.next(bufmgr)? {
             Some(pair) => pair,

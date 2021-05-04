@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::Result;
 
 use relly::query::{IndexScan, TupleSearchMode, PlanNode};
@@ -15,8 +17,8 @@ fn main() -> Result<()> {
     let plan = IndexScan {
         table_meta_page_id: PageId(0),
         index_meta_page_id: PageId(2),
-        search_mode: TupleSearchMode::Key(&[b"Smith"]),
-        while_cond: &|skey| skey[0].as_slice() == b"Smith",
+        search_mode: TupleSearchMode::Key(vec![b"Smith".to_vec()]),
+        while_cond: Rc::new(|skey| skey[0].as_slice() == b"Smith"),
     };
     let mut exec = plan.start(&mut bufmgr)?;
 
