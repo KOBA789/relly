@@ -346,28 +346,23 @@ mod tests {
         let pool = BufferPool::new(10);
         let mut bufmgr = BufferPoolManager::new(disk, pool);
         let btree = BTree::create(&mut bufmgr).unwrap();
-        let long_padding = vec![0xDEu8; 1500];
-        btree
-            .insert(&mut bufmgr, &6u64.to_be_bytes(), &long_padding)
-            .unwrap();
-        btree
-            .insert(&mut bufmgr, &3u64.to_be_bytes(), &long_padding)
-            .unwrap();
-        btree
-            .insert(&mut bufmgr, &8u64.to_be_bytes(), &long_padding)
-            .unwrap();
-        btree
-            .insert(&mut bufmgr, &4u64.to_be_bytes(), &long_padding)
-            .unwrap();
-        btree
-            .insert(&mut bufmgr, &5u64.to_be_bytes(), b"hello")
-            .unwrap();
-
-        let (_, value) = btree
-            .search(&mut bufmgr, SearchMode::Key(5u64.to_be_bytes().to_vec()))
-            .unwrap()
-            .get()
-            .unwrap();
-        assert_eq!(b"hello", &value[..]);
-    }
+        let long_data_list = vec![
+            vec![0xC0u8; 1000],
+            vec![0x01u8; 1000],
+            vec![0xCAu8; 1000],
+            vec![0xFEu8; 1000],
+            vec![0xDEu8; 1000],
+            vec![0xADu8; 1000],
+            vec![0xBEu8; 1000],
+            vec![0xAEu8; 1000],
+        ];
+        for data in long_data_list.iter() {
+            btree.insert(&mut bufmgr, &data, &data).unwrap();
+        }
+        for data in long_data_list.iter() {
+            let (k, v) = btree.search(&mut bufmgr, SearchMode::Key(data.clone())).unwrap().get().unwrap();
+            assert_eq!(data, &k);
+            assert_eq!(data, &v);
+        }
+    }   
 }
