@@ -7,9 +7,7 @@ include ../../common.mk
 $(TARGET_BIN) : .FORCE
 	export LLVM_CC="$(LLVM_CC)" && \
 		export LLVM_AR="$(LLVM_AR)" && \
-		cargo build -vv --target=x86_64-unknown-elf.json --release \
-		-Z build-std=core,alloc \
-		-Z build-std-features=compiler-builtins-mem
+		cargo build -vv --release
 	cp target/x86_64-unknown-elf/release/relly ./relly.bin
 install: $(TARGET_BIN)
 clean:
