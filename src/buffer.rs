@@ -156,7 +156,6 @@ impl BufferPoolManager {
                 self.disk
                     .write_page_data(evict_page_id, buffer.page.get_mut())?;
             }
-            self.page_table.remove(&evict_page_id);
             let page_id = self.disk.allocate_page();
             *buffer = Buffer::default();
             buffer.page_id = page_id;
