@@ -101,11 +101,17 @@ impl BTree {
         match node::Body::new(node.header.node_type, node.body.as_bytes()) {
             node::Body::Leaf(leaf) => {
                 let slot_id = search_mode.tuple_slot_id(&leaf).unwrap_or_else(identity);
+                let is_right_most = leaf.num_pairs() == slot_id;
                 drop(node);
-                Ok(Iter {
+
+                let mut iter = Iter {
                     buffer: node_buffer,
                     slot_id,
-                })
+                };
+                if is_right_most {
+                    iter.advance(bufmgr)?;
+                }
+                Ok(iter)
             }
             node::Body::Branch(branch) => {
                 let child_page_id = search_mode.child_page_id(&branch);
@@ -247,18 +253,13 @@ impl Iter {
         }
     }
 
-    #[allow(clippy::type_complexity)]
-    pub fn next(
-        &mut self,
-        bufmgr: &mut BufferPoolManager,
-    ) -> Result<Option<(Vec<u8>, Vec<u8>)>, Error> {
-        let value = self.get();
+    fn advance(&mut self, bufmgr: &mut BufferPoolManager) -> Result<(), Error> {
         self.slot_id += 1;
         let next_page_id = {
             let leaf_node = node::Node::new(self.buffer.page.borrow() as Ref<[_]>);
             let leaf = leaf::Leaf::new(leaf_node.body);
             if self.slot_id < leaf.num_pairs() {
-                return Ok(value);
+                return Ok(());
             }
             leaf.next_page_id()
         };
@@ -266,6 +267,16 @@ impl Iter {
             self.buffer = bufmgr.fetch_page(next_page_id)?;
             self.slot_id = 0;
         }
+        Ok(())
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn next(
+        &mut self,
+        bufmgr: &mut BufferPoolManager,
+    ) -> Result<Option<(Vec<u8>, Vec<u8>)>, Error> {
+        let value = self.get();
+        self.advance(bufmgr)?;
         Ok(value)
     }
 }
@@ -311,6 +322,32 @@ mod tests {
     }
 
     #[test]
+    fn test_search_iter() {
+        let disk = DiskManager::new(tempfile().unwrap()).unwrap();
+        let pool = BufferPool::new(10);
+        let mut bufmgr = BufferPoolManager::new(disk, pool);
+        let btree = BTree::create(&mut bufmgr).unwrap();
+
+        for i in 0u64..16 {
+            btree
+                .insert(&mut bufmgr, &(i * 2).to_be_bytes(), &[0; 1024])
+                .unwrap();
+        }
+
+        for i in 0u64..15 {
+            let (key, _) = btree
+                .search(
+                    &mut bufmgr,
+                    SearchMode::Key((i * 2 + 1).to_be_bytes().to_vec()),
+                )
+                .unwrap()
+                .get()
+                .unwrap();
+            assert_eq!(key.as_slice(), &((i + 1) * 2).to_be_bytes());
+        }
+    }
+
+    #[test]
     fn test_split() {
         let disk = DiskManager::new(tempfile().unwrap()).unwrap();
         let pool = BufferPool::new(10);
@@ -330,9 +367,13 @@ mod tests {
             btree.insert(&mut bufmgr, &data, &data).unwrap();
         }
         for data in long_data_list.iter() {
-            let (k, v) = btree.search(&mut bufmgr, SearchMode::Key(data.clone())).unwrap().get().unwrap();
+            let (k, v) = btree
+                .search(&mut bufmgr, SearchMode::Key(data.clone()))
+                .unwrap()
+                .get()
+                .unwrap();
             assert_eq!(data, &k);
             assert_eq!(data, &v);
         }
-    }   
+    }
 }
