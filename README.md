@@ -15,4 +15,5 @@ relly は RDBMS のしくみを学ぶための小さな RDBMS 実装です。
 入力補完などの便利な機能のセットアップについては、以下の動画で紹介しています。参考にしてください。
 
 [![](docs/yt-devenv.png)](https://www.youtube.com/watch?v=677kcyyPwJ4)
+
 [Rust入門者必見！開発環境をセットアップしよう](https://www.youtube.com/watch?v=677kcyyPwJ4)
