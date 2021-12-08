@@ -32,7 +32,7 @@ impl<B: ByteSlice> Branch<B> {
 
     pub fn search_slot_id(&self, key: &[u8]) -> Result<usize, usize> {
         binary_search_by(self.num_pairs(), |slot_id| {
-            self.pair_at(slot_id).key.cmp(&key)
+            self.pair_at(slot_id).key.cmp(key)
         })
     }
 

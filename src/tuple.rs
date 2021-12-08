@@ -27,7 +27,7 @@ impl<'a, T: AsRef<[u8]>> Debug for Pretty<'a, T> {
         let mut d = f.debug_tuple("Tuple");
         for elem in self.0 {
             let bytes = elem.as_ref();
-            match std::str::from_utf8(&bytes) {
+            match std::str::from_utf8(bytes) {
                 Ok(s) => {
                     d.field(&format_args!("{:?} {:02x?}", s, bytes));
                 }

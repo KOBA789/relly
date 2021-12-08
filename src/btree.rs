@@ -364,7 +364,7 @@ mod tests {
             vec![0xAEu8; 1000],
         ];
         for data in long_data_list.iter() {
-            btree.insert(&mut bufmgr, &data, &data).unwrap();
+            btree.insert(&mut bufmgr, data, data).unwrap();
         }
         for data in long_data_list.iter() {
             let (k, v) = btree
