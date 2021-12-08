@@ -100,30 +100,18 @@ impl BTree {
         let node = node::Node::new(node_buffer.page.borrow() as Ref<[_]>);
         match node::Body::new(node.header.node_type, node.body.as_bytes()) {
             node::Body::Leaf(leaf) => {
-                let (slot_id, node_buffer) = match search_mode
-                    .tuple_slot_id(&leaf)
-                    .map(Ok)
-                    .map_err(|i| if i == leaf.num_pairs() { Err(i) } else { Ok(i) })
-                    .unwrap_or_else(identity)
-                {
-                    Ok(slot_id) => {
-                        drop(node);
-                        (slot_id, node_buffer)
-                    }
-                    Err(slot_id) => {
-                        if let Some(next_page_id) = leaf.next_page_id() {
-                            (0, bufmgr.fetch_page(next_page_id)?)
-                        } else {
-                            drop(node);
-                            (slot_id, node_buffer)
-                        }
-                    }
-                };
+                let slot_id = search_mode.tuple_slot_id(&leaf).unwrap_or_else(identity);
+                let is_right_most = leaf.num_pairs() == slot_id;
+                drop(node);
 
-                Ok(Iter {
+                let mut iter = Iter {
                     buffer: node_buffer,
                     slot_id,
-                })
+                };
+                if is_right_most {
+                    iter.advance(bufmgr)?;
+                }
+                Ok(iter)
             }
             node::Body::Branch(branch) => {
                 let child_page_id = search_mode.child_page_id(&branch);
@@ -265,18 +253,13 @@ impl Iter {
         }
     }
 
-    #[allow(clippy::type_complexity)]
-    pub fn next(
-        &mut self,
-        bufmgr: &mut BufferPoolManager,
-    ) -> Result<Option<(Vec<u8>, Vec<u8>)>, Error> {
-        let value = self.get();
+    fn advance(&mut self, bufmgr: &mut BufferPoolManager) -> Result<(), Error> {
         self.slot_id += 1;
         let next_page_id = {
             let leaf_node = node::Node::new(self.buffer.page.borrow() as Ref<[_]>);
             let leaf = leaf::Leaf::new(leaf_node.body);
             if self.slot_id < leaf.num_pairs() {
-                return Ok(value);
+                return Ok(());
             }
             leaf.next_page_id()
         };
@@ -284,6 +267,16 @@ impl Iter {
             self.buffer = bufmgr.fetch_page(next_page_id)?;
             self.slot_id = 0;
         }
+        Ok(())
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn next(
+        &mut self,
+        bufmgr: &mut BufferPoolManager,
+    ) -> Result<Option<(Vec<u8>, Vec<u8>)>, Error> {
+        let value = self.get();
+        self.advance(bufmgr)?;
         Ok(value)
     }
 }
