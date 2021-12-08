@@ -1,8 +1,8 @@
 use anyhow::Result;
 
-use relly::query::{Filter, SeqScan, TupleSearchMode, PlanNode};
 use relly::buffer::{BufferPool, BufferPoolManager};
 use relly::disk::{DiskManager, PageId};
+use relly::query::{Filter, PlanNode, SeqScan, TupleSearchMode};
 use relly::tuple;
 
 fn main() -> Result<()> {

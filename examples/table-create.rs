@@ -5,14 +5,14 @@ use relly::disk::{DiskManager, PageId};
 use relly::table::{Table, UniqueIndex};
 
 /* CREATE TABLE
-   |id    |first_name|last_name|
-   |------|----------|---------|
-   |z     |Alice     |Smith    |
-   |x     |Bob       |Johonson |
-   |y     |Charlie   |Williams |
-   |w     |Dave      |Miller   |
-   |v     |Eve       |Brown    |
- */
+  |id    |first_name|last_name|
+  |------|----------|---------|
+  |z     |Alice     |Smith    |
+  |x     |Bob       |Johonson |
+  |y     |Charlie   |Williams |
+  |w     |Dave      |Miller   |
+  |v     |Eve       |Brown    |
+*/
 fn main() -> Result<()> {
     let disk = DiskManager::open("table.rly")?;
     let pool = BufferPool::new(10);
@@ -21,12 +21,10 @@ fn main() -> Result<()> {
     let mut table = Table {
         meta_page_id: PageId::INVALID_PAGE_ID,
         num_key_elems: 1,
-        unique_indices: vec![
-            UniqueIndex {
-                meta_page_id: PageId::INVALID_PAGE_ID,
-                skey: vec![2],
-            },
-        ]
+        unique_indices: vec![UniqueIndex {
+            meta_page_id: PageId::INVALID_PAGE_ID,
+            skey: vec![2],
+        }],
     };
     table.create(&mut bufmgr)?;
     dbg!(&table);

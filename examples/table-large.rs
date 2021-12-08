@@ -7,17 +7,16 @@ use sha1::{Digest, Sha1};
 
 const NUM_ROWS: u32 = 10_000_000;
 
-/* CREATE TABLE
-   |id    |first_name|last_name|
-   |------|----------|---------|
-   |z     |Alice     |Smith    |
-   |x     |Bob       |Johonson |
-   |y     |Charlie   |Williams |
-   |w     |Dave      |Miller   |
-   |v     |Eve       |Brown    |
-   |...   |          |         |
-   |BE i32|md5(id)   |sha1(id) |
- */
+// CREATE TABLE
+// |id    |first_name|last_name|
+// |------|----------|---------|
+// |z     |Alice     |Smith    |
+// |x     |Bob       |Johonson |
+// |y     |Charlie   |Williams |
+// |w     |Dave      |Miller   |
+// |v     |Eve       |Brown    |
+// |...   |          |         |
+// |BE i32|md5(id)   |sha1(id) |
 fn main() -> Result<()> {
     let disk = DiskManager::open("table.rly")?;
     let pool = BufferPool::new(1_000_000);
@@ -25,12 +24,10 @@ fn main() -> Result<()> {
     let mut table = Table {
         meta_page_id: PageId(0),
         num_key_elems: 1,
-        unique_indices: vec![
-            UniqueIndex {
-                meta_page_id: PageId::INVALID_PAGE_ID,
-                skey: vec![2],
-            },
-        ],
+        unique_indices: vec![UniqueIndex {
+            meta_page_id: PageId::INVALID_PAGE_ID,
+            skey: vec![2],
+        }],
     };
     table.create(&mut bufmgr)?;
     dbg!(&table);

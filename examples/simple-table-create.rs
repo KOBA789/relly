@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     table.insert(&mut bufmgr, &[b"y", b"Charlie", b"Williams"])?;
     table.insert(&mut bufmgr, &[b"w", b"Dave", b"Miller"])?;
     table.insert(&mut bufmgr, &[b"v", b"Eve", b"Brown"])?;
-    
+
     bufmgr.flush()?;
     Ok(())
 }

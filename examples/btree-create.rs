@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use relly::{btree::BTree};
+use relly::btree::BTree;
 use relly::buffer::{BufferPool, BufferPoolManager};
 use relly::disk::DiskManager;
 

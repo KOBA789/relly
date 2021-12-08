@@ -1,5 +1,6 @@
 use std::cmp::Ordering::{self, Greater, Less};
 
+#[rustfmt::skip]
 /*
  * This is originated in Rust core library:
  * https://github.com/rust-lang/rust/blob/b01026de465d5a5ef51e32c1012c43927d2a111c/library/core/src/slice/mod.rs#L2186

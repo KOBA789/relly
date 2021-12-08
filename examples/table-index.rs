@@ -1,8 +1,8 @@
 use anyhow::Result;
 
-use relly::query::{IndexScan, TupleSearchMode, PlanNode};
 use relly::buffer::{BufferPool, BufferPoolManager};
 use relly::disk::{DiskManager, PageId};
+use relly::query::{IndexScan, PlanNode, TupleSearchMode};
 use relly::tuple;
 
 // SELECT * WHERE last_name = 'Smith'

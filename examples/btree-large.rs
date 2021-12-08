@@ -1,5 +1,5 @@
 use anyhow::Result;
-use md5::{Md5, Digest};
+use md5::{Digest, Md5};
 
 use relly::btree::BTree;
 use relly::buffer::{BufferPool, BufferPoolManager};
